@@ -1,0 +1,12 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Custom button styles */
+.btn-primary {
+    @apply bg-accent text-white font-semibold py-2 px-4 rounded-md hover:bg-secondary transition-colors duration-200;
+}
+
+.btn-outline-dark {
+    @apply border border-gray-600 text-gray-600 hover:bg-gray-600 hover:text-white rounded-md transition-colors duration-200;
+}

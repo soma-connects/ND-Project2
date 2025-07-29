@@ -1,0 +1,122 @@
+<x-app-layout title="Shop" bodyclass="shop">
+    <div class="container px-4 py-8">
+        <h2 class="text-4xl font-bold mb-8 mt-5 btn text-accent text-center font-playfair">Shop</h2>
+
+        <!-- Notifications -->
+        @if (session('success'))
+            <div class="alert alert-success mb-6 flex justify-between items-center">
+                {{ session('success') }}
+                <button class="close text-white">×</button>
+            </div>
+        @endif
+        @if (session('error'))
+            <div class="alert alert-danger mb-6 flex justify-between items-center">
+                {{ session('error') }}
+                <button class="close text-white">×</button>
+            </div>
+        @endif
+
+        <!-- Sorting Controls -->
+        <div class="sort-controls">
+            <form action="{{ route('shop') }}" method="GET">
+                <select name="sort" onchange="this.form.submit()">
+                    <option value="">Sort By</option>
+                    <option value="price-asc" {{ request('sort') == 'price-asc' ? 'selected' : '' }}>Price: Low to High</option>
+                    <option value="price-desc" {{ request('sort') == 'price-desc' ? 'selected' : '' }}>Price: High to Low</option>
+                    <option value="name-asc" {{ request('sort') == 'name-asc' ? 'selected' : '' }}>Name: A-Z</option>
+                    <option value="newest" {{ request('sort') == 'newest' ? 'selected' : '' }}>Newest</option>
+                </select>
+            </form>
+        </div>
+
+        @if ($products->isEmpty())
+            <p class="text-gray-600 dark:text-gray-400 text-center py-12">No products found.</p>
+        @else
+            <div class="product-grid">
+                @foreach ($products as $product)
+                    <div class="product-card">
+                        @if ($product->is_new)
+                            <span class="product-badge">New</span>
+                        @endif
+                        @if ($product->is_on_sale)
+                            <span class="product-badge sale">Sale</span>
+                        @endif
+                        <a href="{{ route('product', $product->id) }}">
+                            <img src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->name }}" class="w-full h-200 object-cover rounded" loading="lazy" onerror="this.src='https://placehold.co/300x200/cccccc/000000?text=Image+Not+Found'">
+                        </a>
+                        <div class="product-card-content">
+                            <a href="{{ route('product', $product->id) }}">
+                                <h3>{{ $product->name }}</h3>
+                            </a>
+                            <p class="sku">{{ $product->sku ?? 'N/A' }}</p>
+                            <p class="price">${{ number_format($product->price, 2) }}</p>
+                            <form action="{{ route('cart.add') }}" method="POST" class="add-to-cart-form" data-product-id="{{ $product->id }}">
+                                @csrf
+                                <input type="hidden" name="product_id" value="{{ $product->id }}">
+                                <div class="quantity-selector-small">
+                                    <input type="number" name="quantity" value="1" min="1" max="{{ $product->stock }}" class="input">
+                                    <button type="submit" class="btn-primary add-to-cart" {{ $product->stock == 0 ? 'disabled' : '' }}>Add to Cart</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+            <div class="mt-8 flex justify-center">
+                {{ $products->links('vendor.pagination.custom') }}
+            </div>
+        @endif
+    </div>
+
+    <script>
+        document.querySelectorAll('.add-to-cart-form').forEach(form => {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(form);
+                try {
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json'
+                        },
+                        body: formData
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        document.querySelector('.cart-count').textContent = data.cartCount;
+                        showNotification(data.message || 'Product added to cart.', 'success');
+                    } else {
+                        showNotification(data.message || 'Failed to add to cart.', 'error');
+                    }
+                } catch (error) {
+                    showNotification('An error occurred while adding to cart.', 'error');
+                }
+            });
+        });
+
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type} mb-6 flex justify-between items-center`;
+            notification.innerHTML = `${message}<button class="close text-white">×</button>`;
+            document.querySelector('.container').prepend(notification);
+            setTimeout(() => notification.remove(), 3000);
+
+            document.querySelectorAll('.close').forEach(button => {
+                button.addEventListener('click', function () {
+                    const alert = this.parentElement;
+                    alert.classList.add('fade-out');
+                    setTimeout(() => alert.remove(), 500);
+                });
+            });
+        }
+
+        document.querySelectorAll('.close').forEach(button => {
+            button.addEventListener('click', function () {
+                const alert = this.parentElement;
+                alert.classList.add('fade-out');
+                setTimeout(() => alert.remove(), 500);
+            });
+        });
+    </script>
+</x-app-layout>

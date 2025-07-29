@@ -1,0 +1,57 @@
+<x-guest-layout title="Reset Password" bodyclass="page reset-password">
+    <section class="auth-hero">
+        <div class="container">
+            <div class="hero-content text-center">
+                <h1 class="font-playfair">Reset Your Password 🍄🐾</h1>
+                <p class="hero-subtitle">Enter your new password.</p>
+            </div>
+        </div>
+    </section>
+    <section class="auth-section">
+        <div class="container">
+            <div class="auth-form vine-border">
+                @if ($errors->any())
+                    <div class="alert alert-danger flex justify-between items-center">
+                        @foreach ($errors->all() as $error)
+                            <span>{{ $error }}</span><br>
+                        @endforeach
+                        <button class="close" aria-label="Close alert">×</button>
+                    </div>
+                @endif
+                <form method="POST" action="{{ route('password.update') }}" class="form-inner">
+                    @csrf
+                    <input type="hidden" name="token" value="{{ $token }}">
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <div class="input-wrapper">
+                            <input type="email" id="email" name="email" value="{{ $email ?? old('email') }}" required placeholder="Enter your email">
+                            <i class="fas fa-envelope input-icon"></i>
+                        </div>
+                        @error('email')
+                            <span class="error">{{ $message }}</span>
+                        @enderror
+                    </div>
+                    <div class="form-group">
+                        <label for="password">New Password</label>
+                        <div class="input-wrapper">
+                            <input type="password" id="password" name="password" required placeholder="Enter your new password">
+                            <i class="fas fa-eye password-toggle" aria-label="Toggle password visibility"></i>
+                        </div>
+                        @error('password')
+                            <span class="error">{{ $message }}</span>
+                        @enderror
+                    </div>
+                    <div class="form-group">
+                        <label for="password_confirmation">Confirm Password</label>
+                        <div class="input-wrapper">
+                            <input type="password" id="password_confirmation" name="password_confirmation" required placeholder="Confirm your password">
+                            <i class="fas fa-eye password-toggle" aria-label="Toggle password visibility"></i>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Reset Password</button>
+                </form>
+                <p class="extra-link text-center">Back to <a href="{{ route('login') }}" class="form-link">Login</a></p>
+            </div>
+        </div>
+    </section>
+</x-guest-layout>
