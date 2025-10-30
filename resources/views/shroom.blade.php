@@ -53,10 +53,8 @@
                             <form action="{{ route('cart.add') }}" method="POST" class="add-to-cart-form" data-product-id="{{ $product->id }}">
                                 @csrf
                                 <input type="hidden" name="product_id" value="{{ $product->id }}">
-                                <div class="quantity-selector-small">
-                                    <input type="number" name="quantity" value="1" min="1" max="{{ $product->stock }}" class="input">
-                                    <button type="submit" class="btn-primary add-to-cart" {{ $product->stock == 0 ? 'disabled' : '' }}>Add to Cart</button>
-                                </div>
+                                <input type="hidden" name="quantity" value="1">
+                                <button type="submit" class="btn-primary add-to-cart" {{ $product->stock == 0 ? 'disabled' : '' }}>Add to Cart</button>
                             </form>
                         </div>
                     </div>
@@ -68,7 +66,7 @@
         @endif
     </div>
 
-    <script>
+    {{-- <script>
         document.querySelectorAll('.add-to-cart-form').forEach(form => {
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -118,5 +116,5 @@
                 setTimeout(() => alert.remove(), 500);
             });
         });
-    </script>
+    </script> --}}
 </x-app-layout>

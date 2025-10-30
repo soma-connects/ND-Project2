@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Mail\OrderConfirmationMail;
 use App\Models\Cart;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -10,8 +11,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 
 class CartController extends Controller
 {
@@ -31,28 +33,29 @@ class CartController extends Controller
 
     public function add(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'product_id' => 'required|exists:products,id',
-            'quantity' => 'required|integer|min:1',
+            'quantity' => 'nullable|integer|min:1',
         ]);
+        $quantity = $validated['quantity'] ?? 1;
 
         try {
             $product = Product::findOrFail($request->product_id);
-            if ($product->stock < $request->quantity) {
+            if ($product->stock < $quantity) {
                 return $this->errorResponse('Requested quantity exceeds available stock.', $request->expectsJson(), 400);
             }
 
             if (Auth::check()) {
                 $cartItem = Cart::updateOrCreate(
                     ['user_id' => Auth::id(), 'product_id' => $request->product_id],
-                    ['quantity' => DB::raw('quantity + ' . $request->quantity)]
+                    ['quantity' => DB::raw('quantity + ' . $quantity)]
                 );
             } else {
                 $cart = Session::get('cart', []);
                 $productId = $request->product_id;
                 $cart[$productId] = [
                     'product_id' => $productId,
-                    'quantity' => ($cart[$productId]['quantity'] ?? 0) + $request->quantity,
+                    'quantity' => ($cart[$productId]['quantity'] ?? 0) + $quantity,
                 ];
                 Session::put('cart', $cart);
             }
@@ -158,10 +161,6 @@ class CartController extends Controller
     public function checkout()
     {
         try {
-            if (!Auth::check()) {
-                return redirect()->route('login')->with('error', 'Please log in to proceed to checkout.');
-            }
-
             $cartItems = $this->getCartItems();
             if ($cartItems->isEmpty()) {
                 return redirect()->route('cart')->with('error', 'Your cart is empty or contains unavailable items.');
@@ -179,10 +178,7 @@ class CartController extends Controller
 
     public function storeOrder(Request $request)
     {
-        if (!Auth::check()) {
-            Log::warning('Unauthorized order submission attempt');
-            return $this->errorResponse('Please log in to complete your purchase.', $request->expectsJson());
-        }
+        // Guest checkout is now allowed, no authentication check needed
 
         $request->validate([
             'name' => 'required|string|max:255',
@@ -195,7 +191,8 @@ class CartController extends Controller
         try {
             DB::beginTransaction();
 
-            Log::info('Starting order creation', ['user_id' => Auth::id()]);
+            $userId = Auth::check() ? Auth::id() : null;
+            Log::info('Starting order creation', ['user_id' => $userId, 'is_guest' => !Auth::check()]);
 
             $cartItems = $this->getCartItems();
             if ($cartItems->isEmpty()) {
@@ -229,16 +226,23 @@ class CartController extends Controller
             $receiptPath = $request->file('receipt')->store('payment_receipts', 'public');
             Log::info('Payment receipt uploaded', ['path' => $receiptPath]);
 
-            $order = Order::create([
-                'user_id' => Auth::id(),
-                'name' => $request->name,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'address' => $request->address,
+            // Create order data array
+            $orderData = [
+                'user_id' => $userId,
                 'subtotal' => $subtotal,
                 'total' => $total,
                 'status' => 'pending',
-            ]);
+            ];
+
+            // If guest order, add guest information
+            if (!Auth::check()) {
+                $orderData['guest_name'] = $request->name;
+                $orderData['guest_email'] = $request->email;
+                $orderData['guest_phone'] = $request->phone;
+                $orderData['guest_address'] = $request->address;
+            }
+
+            $order = Order::create($orderData);
             Log::info('Order created', ['order_id' => $order->id]);
 
             foreach ($cartItems as $cartItem) {
@@ -259,21 +263,43 @@ class CartController extends Controller
             ]);
             Log::info('Payment receipt created', ['receipt_id' => $receipt->id, 'path' => $receiptPath]);
 
-            Cart::where('user_id', Auth::id())->delete();
-            Log::info('Cart cleared for user', ['user_id' => Auth::id()]);
+            // Clear cart based on user type
+            if (Auth::check()) {
+                Cart::where('user_id', Auth::id())->delete();
+                Log::info('Cart cleared for authenticated user', ['user_id' => Auth::id()]);
+            } else {
+                Session::forget('cart');
+                Log::info('Session cart cleared for guest user');
+            }
+
+            $confirmationUrl = URL::signedRoute('order.confirmation', ['order' => $order->id]);
 
             DB::commit();
             Log::info('Order transaction committed', ['order_id' => $order->id]);
+
+            $recipientEmail = Auth::check() ? Auth::user()->email : $request->email;
+            if ($recipientEmail) {
+                try {
+                    Mail::to($recipientEmail)->send(new OrderConfirmationMail($order->fresh('items.product'), $confirmationUrl));
+                    Log::info('Order confirmation email dispatched', ['order_id' => $order->id, 'email' => $recipientEmail]);
+                } catch (\Throwable $mailException) {
+                    Log::error('Order confirmation email failed: ' . $mailException->getMessage(), [
+                        'order_id' => $order->id,
+                        'email' => $recipientEmail,
+                    ]);
+                }
+            }
 
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => true,
                     'message' => 'Order placed successfully. Awaiting payment verification.',
                     'order_id' => $order->id,
+                    'confirmation_url' => $confirmationUrl,
                 ]);
             }
 
-            return redirect()->route('order.confirmation', $order->id)->with('success', 'Order placed successfully. Awaiting payment verification.');
+            return redirect()->to($confirmationUrl)->with('success', 'Order placed successfully. Awaiting payment verification.');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Order creation error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
@@ -281,10 +307,26 @@ class CartController extends Controller
         }
     }
 
-    public function confirmation($orderId)
+    public function confirmation(Request $request, Order $order)
     {
+        if ($order->isGuestOrder()) {
+            if (!$request->hasValidSignature()) {
+                Log::warning('Invalid guest order confirmation attempt', ['order_id' => $order->id, 'ip' => $request->ip()]);
+                abort(403, 'This confirmation link is no longer valid.');
+            }
+        } else {
+            if (!Auth::check() || Auth::id() !== $order->user_id) {
+                Log::warning('Unauthorized order confirmation access', [
+                    'order_id' => $order->id,
+                    'user_id' => Auth::id(),
+                    'ip' => $request->ip(),
+                ]);
+                abort(403);
+            }
+        }
+
         try {
-            $order = Order::with('items.product')->findOrFail($orderId);
+            $order->load('items.product');
             return view('confirmation', compact('order'));
         } catch (\Exception $e) {
             Log::error('Order confirmation error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);

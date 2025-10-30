@@ -33,7 +33,13 @@
                         @foreach ($receipts as $receipt)
                             <tr>
                                 <td>{{ $receipt->order_id }}</td>
-                                <td>{{ $receipt->order->user->name }}</td>
+                                <td>
+                                    @if($receipt->order->isGuestOrder())
+                                        {{ $receipt->order->guest_name }} <span class="text-sm text-gray-500">(Guest)</span>
+                                    @else
+                                        {{ $receipt->order->user->name }}
+                                    @endif
+                                </td>
                                 <td><a href="{{ asset('storage/' . $receipt->receipt_path) }}" target="_blank" class="action-link">View Receipt</a></td>
                                 <td><span class="status status-{{ $receipt->status }}">{{ ucfirst($receipt->status) }}</span></td>
                                 <td>

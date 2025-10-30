@@ -2,14 +2,14 @@
     <div class="container header-container">
         <div class="logo-left md:logo-center">
             <a href="{{ route('home') }}">
-                <img src="{{ asset('assets/img/cover.png') }}" class="logo" alt="Paws, Petals & Fungi Logo">
+                <img src="{{ asset('assets/img/paw.png') }}" class="logo" alt="Paws, Petals & Fungi Logo">
             </a>
         </div>
         <div class="header-actions-left hidden md:flex">
             <a href="{{ route('shop') }}" class="nav-link">Shop</a>
-            <a href="{{ route('cap') }}" class="nav-link">Caps</a>
-            <a href="{{ route('sheet') }}" class="nav-link">Chocolate Bar</a>
             <a href="{{ route('shroom') }}" class="nav-link">Shrooms</a>
+            <a href="{{ route('cap') }}" class="nav-link">Pharma</a>
+            <a href="{{ route('sheet') }}" class="nav-link">THC/LSD/DMT</a>
             <a href="{{ route('aboutus') }}" class="nav-link">About</a>
         </div>
         <div class="header-actions-right hidden md:flex items-center">
@@ -62,9 +62,9 @@
     <div class="mobile-nav-backdrop" id="mobile-nav-backdrop"></div>
     <nav class="mobile-nav" id="mobile-nav">
         <a href="{{ route('shop') }}" class="nav-link">Shop All</a>
-        <a href="{{ route('cap') }}" class="nav-link">Caps</a>
-        <a href="{{ route('sheet') }}" class="nav-link">Chocolate Bar</a>
         <a href="{{ route('shroom') }}" class="nav-link">Shrooms</a>
+        <a href="{{ route('cap') }}" class="nav-link">Pharma</a>
+        <a href="{{ route('sheet') }}" class="nav-link">THC/LSD/DMT</a>
         <a href="{{ route('aboutus') }}" class="nav-link">About</a>
         <a href="{{ route('contactus') }}" class="nav-link">Contact</a>
         <a href="{{ route('cart') }}" class="nav-link">Cart ({{ $cartCount }})</a>

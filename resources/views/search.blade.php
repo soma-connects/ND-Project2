@@ -40,10 +40,8 @@
                             <form action="{{ route('cart.add') }}" method="POST" class="add-to-cart-form" data-product-id="{{ $product->id }}">
                                 @csrf
                                 <input type="hidden" name="product_id" value="{{ $product->id }}">
-                                <div class="quantity-selector-small">
-                                    <input type="number" name="quantity" value="1" min="1" max="{{ $product->stock }}" class="input" aria-label="Quantity for {{ $product->name }}">
-                                    <button type="submit" class="btn-primary add-to-cart" {{ $product->stock == 0 ? 'disabled' : '' }} aria-label="Add {{ $product->name }} to cart">Add to Cart</button>
-                                </div>
+                                <input type="hidden" name="quantity" value="1">
+                                <button type="submit" class="btn-primary add-to-cart" {{ $product->stock == 0 ? 'disabled' : '' }} aria-label="Add {{ $product->name }} to cart">Add to Cart</button>
                             </form>
                         </div>
                     </div>
@@ -55,47 +53,4 @@
         @endif
     </div>
 
-    <script>
-        document.querySelectorAll('.add-to-cart-form').forEach(form => {
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const formData = new FormData(form);
-                try {
-                    const response = await fetch(form.action, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                            'Accept': 'application/json'
-                        },
-                        body: formData
-                    });
-                    const data = await response.json();
-                    if (data.success) {
-                        document.querySelector('.cart-count').textContent = data.cartCount;
-                        showNotification(data.message || 'Product added to cart.', 'success');
-                    } else {
-                        showNotification(data.message || 'Failed to add to cart.', 'error');
-                    }
-                } catch (error) {
-                    showNotification('An error occurred while adding to cart.', 'error');
-                }
-            });
-        });
-
-        function showNotification(message, type = 'success') {
-            const notification = document.createElement('div');
-            notification.className = `alert alert-${type} mb-6 flex justify-between items-center`;
-            notification.innerHTML = `${message}<button class="close text-white">×</button>`;
-            document.querySelector('.container').prepend(notification);
-            setTimeout(() => notification.remove(), 3000);
-
-            document.querySelectorAll('.close').forEach(button => {
-                button.addEventListener('click', function () {
-                    const alert = this.parentElement;
-                    alert.classList.add('fade-out');
-                    setTimeout(() => alert.remove(), 500);
-                });
-            });
-        }
-    </script>
 </x-app-layout>

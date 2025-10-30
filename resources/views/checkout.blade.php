@@ -1,12 +1,14 @@
 <x-app-layout title="Checkout" bodyclass="checkout-page">
     <div class="container">
+        <h1 class="font-playfair text-4xl font-bold mb-8 text-accent">Checkout</h1>
+        
         @if (!Auth::check())
-            <div class="alert alert-error">
-                Please <a href="{{ route('login') }}" class="action-link">log in</a> to complete your purchase.
-                <button class="close">×</button>
+            <div class="alert alert-info mb-6">
+                <i class="fas fa-info-circle"></i> You're checking out as a guest. 
+                <a href="{{ route('login') }}" class="text-accent hover:underline">Login</a> or 
+                <a href="{{ route('signup') }}" class="text-accent hover:underline">Create an account</a> to save your order history.
             </div>
-        @else
-            <h1 class="font-playfair text-4xl font-bold mb-8 text-accent">Checkout</h1>
+        @endif
             <div class="checkout-grid">
                 <!-- Order Summary -->
                 <div class="activity-card">
@@ -121,7 +123,7 @@
                         @csrf
                         <div class="form-group">
                             <label for="name" class="form-label">Name</label>
-                            <input type="text" name="name" id="name" value="{{ old('name', Auth::user()->name) }}" required class="form-control">
+                            <input type="text" name="name" id="name" value="{{ old('name', Auth::check() ? Auth::user()->name : '') }}" required class="form-control">
                             @error('name')
                                 <span class="error">{{ $message }}</span>
                             @enderror
@@ -129,7 +131,7 @@
                         
                         <div class="form-group">
                             <label for="email" class="form-label">Email</label>
-                            <input type="email" name="email" id="email" value="{{ old('email', Auth::user()->email) }}" required class="form-control">
+                            <input type="email" name="email" id="email" value="{{ old('email', Auth::check() ? Auth::user()->email : '') }}" required class="form-control">
                             @error('email')
                                 <span class="error">{{ $message }}</span>
                             @enderror
@@ -137,7 +139,7 @@
                         
                         <div class="form-group">
                             <label for="phone" class="form-label">Phone (Optional)</label>
-                            <input type="text" name="phone" id="phone" value="{{ old('phone', Auth::user()->phone ?? '') }}" class="form-control">
+                            <input type="text" name="phone" id="phone" value="{{ old('phone', Auth::check() ? (Auth::user()->phone ?? '') : '') }}" class="form-control">
                             @error('phone')
                                 <span class="error">{{ $message }}</span>
                             @enderror
@@ -145,7 +147,7 @@
                         
                         <div class="form-group">
                             <label for="address" class="form-label">Address</label>
-                            <input type="text" name="address" id="address" value="{{ old('address', Auth::user()->address ?? '') }}" required class="form-control">
+                            <input type="text" name="address" id="address" value="{{ old('address', Auth::check() ? (Auth::user()->address ?? '') : '') }}" required class="form-control">
                             @error('address')
                                 <span class="error">{{ $message }}</span>
                             @enderror
@@ -189,7 +191,6 @@
                     </form>
                 </div>
             </div>
-        @endif
     </div>
 
     

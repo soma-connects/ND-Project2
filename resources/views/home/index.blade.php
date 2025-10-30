@@ -3,7 +3,7 @@
     <section class="hero" style="background: url('{{ asset('assets/img/shroom6.jpg') }}') no-repeat center center/cover;">
         <div class="hero-content container">
             <h1>Welcome to Paws, Petals & Fungi</h1>
-            <p class="hero-subtitle">Natural pet care, premium mushrooms, and vibrant flowers for a healthier, happier life.</p>
+            <p class="hero-subtitle"></p>Natural, premium mushrooms and more, for a healthier and happy life.</p>
             <a href="{{ route('shop') }}" class="btn btn-primary">Shop Now</a>
         </div>
     </section>
@@ -11,7 +11,7 @@
     <section class="featured-products">
         <div class="container">
             <h2>Our Featured Products</h2>
-            <p class="section-subtitle">Handpicked for you and your pets.</p>
+            <p class="section-subtitle">Handpicked for you.</p>
             <div class="product-grid">
                 @forelse($products as $product)
                     <article class="product-card">
@@ -36,7 +36,7 @@
                         <form action="{{ route('cart.add') }}" method="POST" class="add-to-cart-form" data-product-id="{{ $product->id }}">
                             @csrf
                             <input type="hidden" name="product_id" value="{{ $product->id }}">
-                            <input type="number" name="quantity" value="1" min="1" max="{{ $product->stock }}" class="quantity-selector-small input">
+                            <input type="hidden" name="quantity" value="1">
                             <button type="submit" class="btn-primary add-to-cart" {{ $product->stock == 0 ? 'disabled' : '' }}>Add to Cart</button>
                         </form>
                         {{-- <button class="btn btn-secondary quick-view-btn" data-product-id="{{ $product->id }}">Quick View</button> --}}
@@ -54,22 +54,22 @@
    <section class="categories-section">
     <div class="container">
         <h2>Explore Our Collections</h2>
-        <p class="section-subtitle">Discover our curated range of pet care, mushrooms, and flowers.</p>
+        <p class="section-subtitle">Discover our curated range of Pharma, mushrooms, and THC/LSD/DMT.</p>
         <div class="category-grid">
             <a href="{{ route('cap') }}" class="category-item">
-                <img src="{{ asset('assets/img/hero.webp') }}" alt="Caps" loading="lazy">
-                <h3>Mushroom/Capsules</h3>
+                <img src="{{ asset('assets/img/mg1.jpeg') }}" alt="Caps" loading="lazy">
+                <h3>Pharma</h3>
                 <p>Boost wellness with our premium capsules.</p>
             </a>
             <a href="{{ route('sheet') }}" class="category-item">
-                <img src="{{ asset('assets/img/shroom3.jpg') }}" alt="Sheets" loading="lazy">
-                <h3>Chocolate Bar</h3>
+                <img src="{{ asset('assets/img/mg2.jpeg') }}" alt="Sheets" loading="lazy">
+                <h3>THC/LSD/DMT</h3>
                 <p>Calming, natural sheets for you.</p>
             </a>
             <a href="{{ route('shroom') }}" class="category-item">
-                <img src="{{ asset('assets/img/shroom7.jpg') }}" alt="Shrooms" loading="lazy">
-                <h3>Mushroom Powders</h3>
-                <p>Nutrient-rich powders for health.</p>
+                <img src="{{ asset('assets/img/mg3.jpeg') }}" alt="Shrooms" loading="lazy">
+                <h3>Shroom</h3>
+                <p>Nutrient-rich product for health.</p>
             </a>
         </div>
     </div>
@@ -79,8 +79,8 @@
         <div class="container">
             <div class="about-content">
                 <div class="about-text">
-                    <h2>About Paws, Petals & Fungi</h2>
-                    <p>We’re passionate about natural living, blending pet care, medicinal mushrooms, and vibrant flowers to enrich lives. Our products are sustainably sourced, crafted with love, and designed to bring joy to you and your furry friends.</p>
+                    <h2>About Petals, Paws & Fungi</h2>
+                    <p>We’re passionate about natural living, medicinal mushrooms, and vibrant flowers to enrich lives. Our products are sustainably sourced, crafted with love, and designed to bring joy to you.</p>
                     <a href="{{ route('aboutus') }}" class="btn btn-primary">Learn More</a>
                 </div>
                 <div class="about-image">
@@ -93,10 +93,10 @@
     <section class="testimonials-section">
         <div class="container">
             <h2>What Our Customers Say</h2>
-            <p class="section-subtitle">Hear from our happy pet owners and wellness enthusiasts.</p>
+            <p class="section-subtitle">Hear from our wellness enthusiasts.</p>
             <div class="testimonials-grid">
                 <div class="testimonial-item">
-                    <p>"The Cordyceps Capsules gave me such an energy boost! My dog loves the Wildflower Treats too."</p>
+                    <p>"The Cordyceps Capsules gave me such an energy boost! "</p>
                     <h4>Sarah M.</h4>
                     <span class="stars">★★★★★</span>
                 </div>
@@ -117,7 +117,7 @@
     {{-- <section class="newsletter-section">
         <div class="container">
             <h2>Join Our Newsletter</h2>
-            <p class="section-subtitle">Stay updated with new products, pet tips, and exclusive offers.</p>
+            <p class="section-subtitle">Stay updated with new products, and exclusive offers.</p>
             <form action="{{ route('newsletter.subscribe') }}" method="POST" class="newsletter-form">
                 @csrf
                 <input type="email" name="email" placeholder="Enter your email" required>
@@ -126,47 +126,5 @@
         </div>
     </section> --}}
 
-    <script>
-        document.querySelectorAll('.add-to-cart-form').forEach(form => {
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const formData = new FormData(form);
-                try {
-                    const response = await fetch(form.action, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                            'Accept': 'application/json'
-                        },
-                        body: formData
-                    });
-                    const data = await response.json();
-                    if (data.success) {
-                        document.querySelector('.cart-count').textContent = data.cartCount;
-                        showNotification(data.message || 'Product added to cart.', 'success');
-                    } else {
-                        showNotification(data.message || 'Failed to add to cart.', 'error');
-                    }
-                } catch (error) {
-                    showNotification('An error occurred while adding to cart.', 'error');
-                }
-            });
-        });
-
-        function showNotification(message, type = 'success') {
-            const notification = document.createElement('div');
-            notification.className = `alert alert-${type}`;
-            notification.textContent = message;
-            document.querySelector('.container').prepend(notification);
-            setTimeout(() => notification.remove(), 3000);
-        }
-
-        document.querySelectorAll('.close').forEach(button => {
-            button.addEventListener('click', function () {
-                const alert = this.parentElement;
-                alert.classList.add('fade-out');
-                setTimeout(() => alert.remove(), 500);
-            });
-        });
-    </script>
+    
 </x-app-layout>

@@ -61,12 +61,12 @@
                 <div class="form-group">
                     <label for="category">Category</label>
                     <select name="category" id="category" class="form-control" required>
-                        <option value="" disabled selected>Select Category</option>
+                        <option value="" disabled>Select Category</option>
                         <option value="shroom" {{ old('category') == 'shroom' ? 'selected' : '' }}>Shrooms</option>
-                        <option value="cap" {{ old('category') == 'cap' ? 'selected' : '' }}>Capsules</option>
-                        <option value="sheet" {{ old('category') == 'sheet' ? 'selected' : '' }}>Sheets</option>
-                        {{-- <option value="pet_food" {{ old('category') == 'pet_food' ? 'selected' : '' }}>Pet Food</option> --}}
-                        {{-- <option value="flowers" {{ old('category') == 'flowers' ? 'selected' : '' }}>Flowers</option> --}}
+                        <option value="cap" {{ old('category') == 'cap' ? 'selected' : '' }}>Pharma</option>
+                        <option value="sheet" {{ old('category') == 'sheet' ? 'selected' : '' }}>THC/LSD/DMT</option>
+                        <!--<option value="pet_food" {{ old('category') == 'pet_food' ? 'selected' : '' }}>Pet Food</option>-->
+                        <!--<option value="flowers" {{ old('category') == 'flowers' ? 'selected' : '' }}>Flowers</option>-->
                     </select>
                     @error('category')
                         <span class="error">{{ $message }}</span>

@@ -20,7 +20,18 @@
             </div>
             <div class="p-6">
                 <p class="mb-4"><strong>Order ID:</strong> {{ $receipt->order_id }}</p>
-                <p class="mb-4"><strong>User:</strong> {{ $receipt->order->user->name }}</p>
+                <p class="mb-4"><strong>Customer:</strong> 
+                    @if($receipt->order->isGuestOrder())
+                        {{ $receipt->order->guest_name }} <span class="text-sm text-gray-500">(Guest)</span><br>
+                        <small class="text-gray-600">Email: {{ $receipt->order->guest_email }}</small><br>
+                        @if($receipt->order->guest_phone)
+                            <small class="text-gray-600">Phone: {{ $receipt->order->guest_phone }}</small><br>
+                        @endif
+                        <small class="text-gray-600">Address: {{ $receipt->order->guest_address }}</small>
+                    @else
+                        {{ $receipt->order->user->name }}
+                    @endif
+                </p>
                 <p class="mb-4"><strong>Receipt:</strong> <a href="{{ asset('storage/' . $receipt->receipt_path) }}" target="_blank" class="action-link">View Receipt</a></p>
                 <p class="mb-4"><strong>Status:</strong> <span class="status status-{{ $receipt->status }}">{{ ucfirst($receipt->status) }}</span></p>
                 @if ($receipt->notes)

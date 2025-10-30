@@ -58,7 +58,7 @@ Route::post('/cart/update/{id}', [CartController::class, 'update'])->name('cart.
 Route::delete('/cart/remove/{id}', [CartController::class, 'remove'])->name('cart.remove');
 Route::get('/cart/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
 Route::post('/cart/store-order', [CartController::class, 'storeOrder'])->name('cart.storeOrder');
-Route::get('/order/confirmation/{orderId}', [CartController::class, 'confirmation'])->name('order.confirmation');
+Route::get('/order/confirmation/{order}', [CartController::class, 'confirmation'])->name('order.confirmation');
 Route::get('/cart/count', [CartController::class, 'count'])->name('cart.count');
 Route::get('/cart/summary', [CartController::class, 'summary'])->name('cart.summary');
 
@@ -85,4 +85,3 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::get('/users', [UserController::class, 'index'])->name('admin.users.index');
     Route::delete('/user-carts/{cart}', [UserCartController::class, 'destroy'])->name('admin.user-carts.remove');
 });
-

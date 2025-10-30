@@ -5,6 +5,86 @@ document.addEventListener('DOMContentLoaded', () => {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
     if (!csrfToken) console.error('CSRF token not found.');
 
+    // --- Smart Sticky Navigation ---
+    let lastScrollY = window.scrollY;
+    let scrollTimeout;
+    const header = document.querySelector('.site-header');
+    const scrollThreshold = 100; // Minimum scroll distance to trigger hide/show
+
+    if (header) {
+        function handleScroll() {
+            const currentScrollY = window.scrollY;
+            const scrollDifference = Math.abs(currentScrollY - lastScrollY);
+            
+            // Only act if scroll difference is significant
+            if (scrollDifference < 10) return;
+            
+            // Clear any existing timeout
+            if (scrollTimeout) {
+                clearTimeout(scrollTimeout);
+            }
+            
+            // Add debounce to prevent too frequent changes
+            scrollTimeout = setTimeout(() => {
+                if (currentScrollY > scrollThreshold) {
+                    if (currentScrollY > lastScrollY) {
+                        // Scrolling down - hide header
+                        header.classList.add('header-hidden');
+                        header.classList.remove('header-visible');
+                    } else {
+                        // Scrolling up - show header
+                        header.classList.remove('header-hidden');
+                        header.classList.add('header-visible');
+                    }
+                } else {
+                    // Near top of page - always show header
+                    header.classList.remove('header-hidden');
+                    header.classList.add('header-visible');
+                }
+                
+                lastScrollY = currentScrollY;
+            }, 50); // 50ms debounce
+        }
+        
+        // Throttled scroll handler for better performance
+        let ticking = false;
+        function requestScrollHandler() {
+            if (!ticking) {
+                requestAnimationFrame(() => {
+                    handleScroll();
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        }
+        
+        window.addEventListener('scroll', requestScrollHandler, { passive: true });
+        
+        // Initialize header state
+        header.classList.add('header-visible');
+    }
+
+    // --- Auto-scroll to Form on Auth Pages ---
+    if (document.body.classList.contains('login') || document.body.classList.contains('signup')) {
+        const authForm = document.querySelector('.auth-form');
+        if (authForm) {
+            // Immediate scroll to form - no delays or checks
+            authForm.scrollIntoView({ 
+                behavior: 'instant',
+                block: 'start',
+                inline: 'nearest'
+            });
+            
+            // Focus on first input for better UX
+            setTimeout(() => {
+                const firstInput = authForm.querySelector('input[type="email"], input[type="text"]');
+                if (firstInput) {
+                    firstInput.focus();
+                }
+            }, 100);
+        }
+    }
+
     // Helper: Show notification
     function showNotification(message, type = 'success') {
         const notification = document.createElement('div');
@@ -292,7 +372,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         updateCartSummary();
                         showNotification(data.message || 'Cart updated successfully.', 'success');
                     } else {
-                        document.querySelectorAll('.cart-count').forEach(el => el.textContent = data.cartCount);
+                        // Update cart count using the data returned from server
+                        document.querySelectorAll('.cart-count').forEach(el => {
+                            el.textContent = data.cartCount || 0;
+                            el.style.display = (data.cartCount > 0) ? 'inline' : 'none';
+                        });
                         showNotification(data.message || 'Product added to cart.', 'success');
                         if (form.closest('.quick-view-modal')) {
                             form.closest('.quick-view-modal').classList.remove('active');
@@ -430,23 +514,33 @@ document.addEventListener('DOMContentLoaded', () => {
             submitButton.disabled = true;
             submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
 
-            try {
-                const response = await fetch('/cart/store-order', {
+        try {
+                const response = await fetch(form.action, {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
                     },
                     body: formData,
                 });
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                const data = await response.json();
-                if (data.success) {
-                    showNotification(data.message || 'Order placed successfully. Awaiting payment verification.', 'success');
-                    window.location.href = `/order/confirmation/${data.order_id}`;
+                const contentType = response.headers.get('content-type') || '';
+                let data = null;
+                if (contentType.includes('application/json')) {
+                    data = await response.json();
                 } else {
-                    showNotification(data.message || 'Failed to place order.', 'error');
+                    const text = await response.text();
+                    throw new Error(text.trim() ? text.trim().slice(0, 200) : 'Unexpected response format from server.');
+                }
+                if (response.ok && data?.success) {
+                    showNotification(data.message || 'Order placed successfully. Awaiting payment verification.', 'success');
+                    const redirectUrl = data.confirmation_url || data.redirect || `/order/confirmation/${data.order_id}`;
+                    window.location.href = redirectUrl;
+                } else {
+                    const validationMessage = data?.message
+                        || (data?.errors ? Object.values(data.errors)[0]?.[0] : null)
+                        || 'Failed to place order.';
+                    showNotification(validationMessage, 'error');
                 }
             } catch (error) {
                 showNotification('Failed to submit order: ' + error.message, 'error');

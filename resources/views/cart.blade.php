@@ -60,11 +60,7 @@
                         <span>Total</span>
                         <span class="total">${{ number_format($total, 2) }}</span>
                     </div>
-                    @auth
-                        <a href="{{ route('cart.checkout') }}" class="btn btn-glow mt-5">Proceed to Checkout</a>
-                    @else
-                        <a href="{{ route('login') }}" class="btn btn-glow mt-5">Login to Checkout</a>
-                    @endauth
+                    <a href="{{ route('cart.checkout') }}" class="btn btn-glow mt-5">Proceed to Checkout</a>
                 </div>
             @endif
         </div>

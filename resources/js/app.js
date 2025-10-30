@@ -167,7 +167,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 const data = await response.json();
                 if (data.success) {
-                    document.querySelectorAll('.cart-count').forEach(el => el.textContent = data.cartCount);
+                    // Update cart count using the data returned from server
+                    document.querySelectorAll('.cart-count').forEach(el => {
+                        el.textContent = data.cartCount || 0;
+                        el.style.display = (data.cartCount > 0) ? 'inline' : 'none';
+                    });
                     showNotification(data.message || 'Product added to cart.');
                     if (form.closest('.quick-view-modal')) {
                         form.closest('.quick-view-modal').classList.remove('active');
@@ -209,11 +213,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 const data = await response.json();
                 if (data.success) {
-                    document.querySelectorAll('.cart-count').forEach(el => el.textContent = data.cartCount);
-                    document.querySelector(`.cart-item[data-product-id="${productId}"] .cart-item-total`)?.textContent = `$${data.item_total.toFixed(2)}`;
-                    document.querySelector('.summary-row .subtotal')?.textContent = `$${data.subtotal.toFixed(2)}`;
-                    document.querySelector('.total-row .total')?.textContent = `$${data.total.toFixed(2)}`;
-                    document.querySelector('.summary-row .shipping')?.textContent = data.subtotal >= 50 ? 'Free' : '$5.00';
+                    // Update cart count using the data returned from server
+                    document.querySelectorAll('.cart-count').forEach(el => {
+                        el.textContent = data.cartCount || 0;
+                        el.style.display = (data.cartCount > 0) ? 'inline' : 'none';
+                    });
+                    const itemTotalEl = document.querySelector(`.cart-item[data-product-id="${productId}"] .cart-item-total`);
+                    if (itemTotalEl) itemTotalEl.textContent = `$${data.item_total.toFixed(2)}`;
+                    const subtotalEl = document.querySelector('.summary-row .subtotal');
+                    if (subtotalEl) subtotalEl.textContent = `$${data.subtotal.toFixed(2)}`;
+                    const totalEl = document.querySelector('.total-row .total');
+                    if (totalEl) totalEl.textContent = `$${data.total.toFixed(2)}`;
+                    const shippingEl = document.querySelector('.summary-row .shipping');
+                    if (shippingEl) shippingEl.textContent = data.subtotal >= 50 ? 'Free' : '$5.00';
                     showNotification(data.message || 'Cart updated.');
                 } else {
                     showNotification(data.message || 'Failed to update cart.', 'error');
@@ -243,13 +255,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
                 if (data.success) {
                     document.querySelector(`.cart-item[data-product-id="${productId}"]`)?.remove();
-                    document.querySelectorAll('.cart-count').forEach(el => el.textContent = data.cartCount);
-                    document.querySelector('.summary-row .subtotal')?.textContent = `$${data.subtotal.toFixed(2)}`;
-                    document.querySelector('.total-row .total')?.textContent = `$${data.total.toFixed(2)}`;
-                    document.querySelector('.summary-row .shipping')?.textContent = data.subtotal >= 50 ? 'Free' : '$5.00';
+                    // Update cart count using the data returned from server
+                    document.querySelectorAll('.cart-count').forEach(el => {
+                        el.textContent = data.cartCount || 0;
+                        el.style.display = (data.cartCount > 0) ? 'inline' : 'none';
+                    });
+                    const subtotalEl2 = document.querySelector('.summary-row .subtotal');
+                    if (subtotalEl2) subtotalEl2.textContent = `$${data.subtotal.toFixed(2)}`;
+                    const totalEl2 = document.querySelector('.total-row .total');
+                    if (totalEl2) totalEl2.textContent = `$${data.total.toFixed(2)}`;
+                    const shippingEl2 = document.querySelector('.summary-row .shipping');
+                    if (shippingEl2) shippingEl2.textContent = data.subtotal >= 50 ? 'Free' : '$5.00';
                     showNotification(data.message || 'Item removed from cart.');
                     if (!document.querySelector('.cart-item')) {
-                        document.querySelector('.cart-items')?.innerHTML = '<p class="text-gray-600 text-center py-12">Your cart is empty.</p>';
+                        const cartItemsEl = document.querySelector('.cart-items');
+                        if (cartItemsEl) cartItemsEl.innerHTML = '<p class="text-gray-600 text-center py-12">Your cart is empty.</p>';
                     }
                 } else {
                     showNotification(data.message || 'Failed to remove item.', 'error');
@@ -327,16 +347,31 @@ document.addEventListener('DOMContentLoaded', () => {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
                     },
                     body: formData,
                 });
-                const data = await response.json();
-                if (data.success) {
-                    showNotification(data.message || 'Order placed successfully. Awaiting payment verification.', 'success');
-                    window.location.href = data.redirect || `/order/confirmation/${data.order_id}`;
+                const contentType = response.headers.get('content-type') || '';
+                let data = null;
+                if (contentType.includes('application/json')) {
+                    data = await response.json();
                 } else {
-                    showNotification(data.message || 'Failed to place order.', 'error');
+                    const text = await response.text();
+                    throw new Error(text.trim() ? text.trim().slice(0, 200) : 'Unexpected response format from server.');
                 }
+
+                if (response.ok && data?.success) {
+                    showNotification(data.message || 'Order placed successfully. Awaiting payment verification.', 'success');
+                    const redirectUrl = data.confirmation_url || data.redirect || `/order/confirmation/${data.order_id}`;
+                    window.location.href = redirectUrl;
+                    return;
+                }
+
+                const validationMessage = data?.message
+                    || (data?.errors ? Object.values(data.errors)[0]?.[0] : null)
+                    || 'Failed to place order.';
+                showNotification(validationMessage, 'error');
             } catch (error) {
                 showNotification('Failed to submit order: ' + error.message, 'error');
                 console.error('Checkout error:', error);
